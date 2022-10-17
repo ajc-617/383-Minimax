@@ -65,24 +65,23 @@ class MinimaxAgent:
         Returns: the exact minimax utility value of the state
         """
         #minimax will be recursive: base case is when the state is a "full" state: no more states
-        successors = state.successors()
-        if not successors:
+        if not state.successors():
             #return utility of current board
             return state.utility()
         #otherwise more recursion to do
         else:
             #player one's turn, so get the max of the successors
-            if state.next_player == 1:
-                cur_max = -100000**2
-                for cur_succ in successors:
+            if state.next_player() == 1:
+                cur_max = -(100000**2)
+                for move, cur_succ in state.successors():
                     if self.minimax(cur_succ) > cur_max:
                         cur_max = self.minimax(cur_succ)
                 return cur_max
 
             #player two's turn, get the minimum of the successors
-            elif state.next_player == -1:
+            elif state.next_player() == -1:
                 cur_min = 100000**2
-                for cur_succ in successors:
+                for move, cur_succ in state.successors():
                     if self.minimax(cur_succ) < cur_min:
                         cur_min = self.minimax(cur_succ)
                 return cur_min
@@ -127,16 +126,16 @@ class MinimaxLookaheadAgent(MinimaxAgent):
             return self.evaluation(state)
         #done with the base cases
         else:
-            if state.next_player == 1:
-                cur_max = -100000**2
-                for cur_succ in successors:
+            if state.next_player() == 1:
+                cur_max = -(100000**2)
+                for move, cur_succ in successors:
                     if self.minimax_depth(cur_succ, depth-1) > cur_max:
                         cur_max = self.minimax_depth(cur_succ, depth-1)
                 return cur_max
 
-            elif state.next_player == -1:
+            elif state.next_player() == -1:
                 cur_min = 100000**2
-                for cur_succ in successors:
+                for move, cur_succ in successors:
                     if self.minimax_depth(cur_succ, depth-1) < cur_min:
                         cur_min = self.minimax_depth(cur_succ, depth-1)
                 return cur_min 
@@ -156,9 +155,9 @@ class MinimaxLookaheadAgent(MinimaxAgent):
         #for evalutation function, count how many total pieces each character currently has in a row
         #in the columns, rows, and diagonals (while counting duplicates as well). No idea if this evalutation function is good but it's 
         #what I came up with
-        columns = state.get_columns
-        rows = state.get_rows
-        diagonals = state.get_diagonals
+        columns = state.get_cols()
+        rows = state.get_rows()
+        diagonals = state.get_diags()
 
         num_pieces_p1 = 0
         num_pieces_p2 = 0
@@ -166,14 +165,15 @@ class MinimaxLookaheadAgent(MinimaxAgent):
         p1_cur_count = 0
         p2_cur_count = 0
 
-        prev_col, cur_col, prev_row, cur_row, prev_diag, cur_diag = -2
+        prev_col = None
+        cur_col = None
         for col in columns:
             for piece in col:
                 #first piece in the column currently
-                if prev_col == -2:
-                    prev_col == piece
+                if prev_col == None:
+                    prev_col = piece
                     continue
-                if cur_col == -2:
+                if cur_col == None:
                     cur_col = piece
                 if prev_col == cur_col and cur_col != 0:
                     if cur_col == 1:
@@ -190,22 +190,71 @@ class MinimaxLookaheadAgent(MinimaxAgent):
             num_pieces_p2 += p2_cur_count
             p1_cur_count = 0
             p2_cur_count = 0
-            prev_col = -2
-            cur_col = -2
+            prev_col = None
+            cur_col = None
 
+        prev_row = None
+        cur_row = None
         for row in rows:
             for piece in row:
-            if prev_row == -2:
+                #first piece in the row currently
+                if prev_row == None:
+                    prev_row = piece
+                    continue
+                if cur_row == None:
+                    cur_row = piece
+                if prev_row == cur_row and cur_row != 0:
+                    if cur_row == 1:
+                        if p1_cur_count == 0:
+                            p1_cur_count += 2
+                        else:
+                            p1_cur_count += 1
+                    else:
+                        if p2_cur_count == 0:
+                            p2_cur_count += 2
+                        else:
+                            p2_cur_count += 1
+            num_pieces_p1 += p1_cur_count
+            num_pieces_p2 += p2_cur_count
+            p1_cur_count = 0
+            p2_cur_count = 0
+            prev_row = None
+            cur_row = None
 
-
+        prev_diag = None
+        cur_diag = None
         for diag in diagonals:
             for piece in diag:
+                #first piece in the column currently
+                if prev_diag == None:
+                    prev_diag = piece
+                    continue
+                if cur_diag == None:
+                    cur_diag = piece
+                if prev_diag == cur_diag and cur_diag != 0:
+                    if cur_diag == 1:
+                        if p1_cur_count == 0:
+                            p1_cur_count += 2
+                        else:
+                            p1_cur_count += 1
+                    else:
+                        if p2_cur_count == 0:
+                            p2_cur_count += 2
+                        else:
+                            p2_cur_count += 1
+            num_pieces_p1 += p1_cur_count
+            num_pieces_p2 += p2_cur_count
+            p1_cur_count = 0
+            p2_cur_count = 0
+            prev_diag = None
+            cur_diag = None
+
         #
         # Fill this in!
         #
 
         # Note: This cannot be "return state.utility() + c", where c is a constant. 
-        return 3  # Change this line!
+        return num_pieces_p1 - num_pieces_p2  # Change this line!
 
 
 class AltMinimaxLookaheadAgent(MinimaxAgent):
@@ -249,7 +298,7 @@ class MinimaxPruneAgent(MinimaxAgent):
         #
         # Fill this in!
         #
-        self.alphabeta(state, -100000**2, 1000000**2)  # Change this line!
+        self.alphabeta(state, -(100000**2), 1000000**2)  # Change this line!
 
     def alphabeta(self, state,alpha, beta):
         """This is just a helper method for minimax(). Feel free to use it or not."""
@@ -261,7 +310,7 @@ class MinimaxPruneAgent(MinimaxAgent):
         #at max
         if state.next_player() == 1:
             cur_alpha = None
-            for cur_succ in state.successors():
+            for move, cur_succ in state.successors():
                 if cur_alpha == None:
                     cur_alpha = self.alphabeta(cur_succ, alpha, beta)
                     continue
@@ -276,7 +325,7 @@ class MinimaxPruneAgent(MinimaxAgent):
         #at min
         else:
             cur_beta = None
-            for cur_succ in state.successors():
+            for move, cur_succ in state.successors():
                 if cur_beta == None:
                     cur_beta = self.alphabeta(cur_succ, alpha, beta)
                     continue
