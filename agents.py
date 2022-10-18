@@ -74,16 +74,18 @@ class MinimaxAgent:
             if state.next_player() == 1:
                 cur_max = -(100000**2)
                 for move, cur_succ in state.successors():
-                    if self.minimax(cur_succ) > cur_max:
-                        cur_max = self.minimax(cur_succ)
+                    cur_minimax = self.minimax(cur_succ)
+                    if cur_minimax > cur_max:
+                        cur_max = cur_minimax
                 return cur_max
 
             #player two's turn, get the minimum of the successors
             elif state.next_player() == -1:
                 cur_min = 100000**2
                 for move, cur_succ in state.successors():
-                    if self.minimax(cur_succ) < cur_min:
-                        cur_min = self.minimax(cur_succ)
+                    cur_minimax = self.minimax(cur_succ)
+                    if cur_minimax < cur_min:
+                        cur_min = cur_minimax
                 return cur_min
 
 
@@ -129,15 +131,17 @@ class MinimaxLookaheadAgent(MinimaxAgent):
             if state.next_player() == 1:
                 cur_max = -(100000**2)
                 for move, cur_succ in successors:
-                    if self.minimax_depth(cur_succ, depth-1) > cur_max:
-                        cur_max = self.minimax_depth(cur_succ, depth-1)
+                    cur_minimax = self.minimax_depth(cur_succ, depth-1)
+                    if cur_minimax > cur_max:
+                        cur_max = cur_minimax
                 return cur_max
 
             elif state.next_player() == -1:
                 cur_min = 100000**2
                 for move, cur_succ in successors:
-                    if self.minimax_depth(cur_succ, depth-1) < cur_min:
-                        cur_min = self.minimax_depth(cur_succ, depth-1)
+                    cur_minimax = self.minimax_depth(cur_succ, depth-1)
+                    if cur_minimax < cur_min:
+                        cur_min = cur_minimax
                 return cur_min 
 
 
@@ -298,7 +302,7 @@ class MinimaxPruneAgent(MinimaxAgent):
         #
         # Fill this in!
         #
-        self.alphabeta(state, -(100000**2), 1000000**2)  # Change this line!
+        return self.alphabeta(state, -(100000**2), 1000000**2)  # Change this line!
 
     def alphabeta(self, state,alpha, beta):
         """This is just a helper method for minimax(). Feel free to use it or not."""
@@ -317,7 +321,7 @@ class MinimaxPruneAgent(MinimaxAgent):
                 elif beta < cur_alpha:
                     break
                 else: 
-                    new_alpha = self.alphabeta(state, cur_alpha, beta)
+                    new_alpha = self.alphabeta(cur_succ, cur_alpha, beta)
                     if new_alpha > cur_alpha:
                         cur_alpha = new_alpha
             return cur_alpha
@@ -332,7 +336,7 @@ class MinimaxPruneAgent(MinimaxAgent):
                 elif alpha > cur_beta:
                     break
                 else: 
-                    new_beta = self.alphabeta(state, alpha, cur_beta)
+                    new_beta = self.alphabeta(cur_succ, alpha, cur_beta)
                     if new_beta < cur_beta:
                         cur_beta = new_beta
             return cur_beta
