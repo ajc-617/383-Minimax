@@ -113,7 +113,7 @@ class MinimaxLookaheadAgent(MinimaxAgent):
 
         Returns: the (possibly estimated) minimax utility value of the state
         """
-        if self.depth_limit == 0:
+        if self.depth_limit == 0 or self.depth_limit is None:
             return self.evaluation(state)
         else:
             return self.minimax_depth(state, self.depth_limit)
@@ -121,10 +121,7 @@ class MinimaxLookaheadAgent(MinimaxAgent):
     def minimax_depth(self, state, depth):
         """This is just a helper method for minimax(). Feel free to use it or not. """
         successors = state.successors()
-        if depth == None:
-            if not successors:
-                return self.evaluation(state)
-        elif depth == 0 or not successors:
+        if depth == 0 or not successors:
             return self.evaluation(state)
         #done with the base cases
         else:
@@ -268,11 +265,188 @@ class AltMinimaxLookaheadAgent(MinimaxAgent):
         self.depth_limit = depth_limit
 
     def minimax(self, state):
-        """Determine the heuristically estimated minimax utility value of the given state."""
+        """Determine the heuristically estimated minimax utility value of the given state.
+
+        Gets called by get_move() to determine the value of successor states.
+
+        The depth data member (set in the constructor) determines the maximum depth of the game 
+        tree that gets explored before estimating the state utilities using the evaluation() 
+        function.  If depth is 0, no traversal is performed, and minimax returns the results of 
+        a call to evaluation().  If depth is None, the entire game tree is traversed.
+
+        Args:
+            state: a connect383.GameState object representing the current board
+
+        Returns: the (possibly estimated) minimax utility value of the state
+        """
+        if self.depth_limit == 0 or self.depth_limit is None:
+            return self.evaluation(state)
+        else:
+            return self.minimax_depth(state, self.depth_limit)
+
+    def minimax_depth(self, state, depth):
+        """This is just a helper method for minimax(). Feel free to use it or not. """
+        successors = state.successors()
+        if depth == 0 or not successors:
+            return self.evaluation(state)
+        #done with the base cases
+        else:
+            if state.next_player() == 1:
+                cur_max = -(100000**2)
+                for move, cur_succ in successors:
+                    cur_minimax = self.minimax_depth(cur_succ, depth-1)
+                    if cur_minimax > cur_max:
+                        cur_max = cur_minimax
+                return cur_max
+
+            elif state.next_player() == -1:
+                cur_min = 100000**2
+                for move, cur_succ in successors:
+                    cur_minimax = self.minimax_depth(cur_succ, depth-1)
+                    if cur_minimax < cur_min:
+                        cur_min = cur_minimax
+                return cur_min 
+
+
+    def evaluation(self, state):
+        """Estimate the utility value of the game state based on features.
+
+        Gets called by minimax() once the depth limit has been reached.  
+        N.B.: This method must run in "constant" time for all states!
+
+        Args:
+            state: a connect383.GameState object representing the current board
+
+        Returns: a heuristic estimate of the utility value of the state
+        """
+        #for evalutation function, count how many total pieces each character has that are in a sequence of three in
+        #a row. For example, if player one has three in a row in the diagonal, num_pieces_cur_count will be 3
+        columns = state.get_cols()
+        rows = state.get_rows()
+        diagonals = state.get_diags()
+
+        num_pieces_p1 = 0
+        num_pieces_p2 = 0
+
+        p1_cur_count = 0
+        p2_cur_count = 0
+
+        second_prev_col = None
+        prev_col = None
+        cur_col = None
+        for col in columns:
+            for piece in col:
+                #first piece in the column currently
+                if second_prev_col == None:
+                    second_prev_col = piece
+                    continue
+                if prev_col == None:
+                    prev_col = piece
+                    continue
+                if cur_col == None:
+                    cur_col = piece
+                if prev_col == cur_col and prev_col == second_prev_col and cur_col != 0:
+                    #player 1 has three in a row
+                    if cur_col == 1:
+                        if p1_cur_count == 0:
+                            p1_cur_count += 3
+                        else:
+                            p1_cur_count += 1
+                    #player 2 has three in a row
+                    elif cur_col == -1:
+                        if p2_cur_count == 0:
+                            p2_cur_count += 3
+                        else:
+                            p2_cur_count += 1
+                second_prev_col = prev_col
+                prev_col = cur_col
+                cur_col = None
+            num_pieces_p1 += p1_cur_count
+            num_pieces_p2 += p2_cur_count
+            p1_cur_count = 0
+            p2_cur_count = 0
+            second_prev_col = None
+            prev_col = None
+            cur_col = None
+
+        second_prev_row = None
+        prev_row = None
+        cur_row = None
+        for row in rows:
+            for piece in row:
+                #first piece in the row currently
+                if second_prev_row == None:
+                    second_prev_row = piece
+                    continue
+                if prev_row == None:
+                    prev_row = piece
+                    continue
+                if cur_row == None:
+                    cur_row = piece
+                if prev_row == cur_row and second_prev_row == prev_row and cur_row != 0:
+                    if cur_row == 1:
+                        if p1_cur_count == 0:
+                            p1_cur_count += 3
+                        else:
+                            p1_cur_count += 1
+                    elif cur_row == -1:
+                        if p2_cur_count == 0:
+                            p2_cur_count += 3
+                        else:
+                            p2_cur_count += 1
+                second_prev_row = prev_row
+                prev_row = cur_row
+                cur_row = None
+            num_pieces_p1 += p1_cur_count
+            num_pieces_p2 += p2_cur_count
+            p1_cur_count = 0
+            p2_cur_count = 0
+            second_prev_row = None
+            prev_row = None
+            cur_row = None
+
+        second_prev_diag = None
+        prev_diag = None
+        cur_diag = None
+        for diag in diagonals:
+            for piece in diag:
+                #first piece in the column currently
+                if second_prev_diag == None:
+                    prev_diag = piece
+                    continue
+                if prev_diag == None:
+                    prev_diag = piece
+                    continue
+                if cur_diag == None:
+                    cur_diag = piece
+                if prev_diag == cur_diag and second_prev_diag == prev_diag and cur_diag != 0:
+                    if cur_diag == 1:
+                        if p1_cur_count == 0:
+                            p1_cur_count += 3
+                        else:
+                            p1_cur_count += 1
+                    elif cur_diag == -1:
+                        if p2_cur_count == 0:
+                            p2_cur_count += 3
+                        else:
+                            p2_cur_count += 1
+                second_prev_diag = prev_diag
+                prev_diag = cur_diag
+                cur_diag = None
+            num_pieces_p1 += p1_cur_count
+            num_pieces_p2 += p2_cur_count
+            p1_cur_count = 0
+            p2_cur_count = 0
+            second_prev_diag = None
+            prev_diag = None
+            cur_diag = None
+
         #
-        # Fill this in, if it pleases you.
+        # Fill this in!
         #
-        return 19  # Change this line, unless you have something better to do.
+
+        # Note: This cannot be "return state.utility() + c", where c is a constant. 
+        return num_pieces_p1 - num_pieces_p2  # Change this line!
 
 
 class MinimaxPruneAgent(MinimaxAgent):
